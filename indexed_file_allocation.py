@@ -1,77 +1,79 @@
-#!/usr/bin/env python3
-"""Indexed File Allocation - Uses an index block to store pointers to data blocks"""
+# Simple Indexed File Allocation
 
 def indexed_allocation(files, disk_size):
     """
     files: list of (filename, index_block, data_blocks)
-    data_blocks: list of block numbers for file data
     """
-    disk = {}  # block_num: (type, content)
-    allocation = {}
-    
+    disk = {}          # stores allocated blocks
+    allocation = {}    # stores final file allocation info
+
     for filename, index_block, data_blocks in files:
-        if index_block >= disk_size or index_block < 0:
-            print(f"Error: Invalid index block {index_block} for {filename}")
+
+        # --- Basic checks ---
+        if index_block < 0 or index_block >= disk_size:
+            print(f"Invalid index block {index_block} for {filename}")
             continue
         
         if index_block in disk:
-            print(f"Error: Index block {index_block} already allocated")
+            print(f"Index block {index_block} already used!")
             continue
-        
-        # check if data blocks are valid and free
-        valid = True
+
+        # Check each data block
+        can_allocate = True
         for block in data_blocks:
-            if block >= disk_size or block < 0:
-                print(f"Error: Invalid data block {block} for {filename}")
-                valid = False
+            if block < 0 or block >= disk_size:
+                print(f"Invalid data block {block} for {filename}")
+                can_allocate = False
                 break
             if block in disk:
-                print(f"Error: Data block {block} already allocated")
-                valid = False
+                print(f"Data block {block} already used!")
+                can_allocate = False
                 break
-        
-        if not valid:
+
+        if not can_allocate:
             continue
-        
-        # allocate index block
+
+        # --- Allocate index block ---
         disk[index_block] = ("index", data_blocks)
-        
-        # allocate data blocks
+
+        # --- Allocate data blocks ---
         for block in data_blocks:
             disk[block] = ("data", filename)
-        
+
         allocation[filename] = {
             "index_block": index_block,
             "data_blocks": data_blocks
         }
-    
+
     return allocation, disk
 
 
 def print_allocation(allocation):
-    print("\nIndexed File Allocation:")
-    print(f"{'File':<15} {'Index Block':<15} {'Data Blocks'}")
-    print("-" * 60)
-    for filename, info in allocation.items():
-        data_str = ", ".join(map(str, info["data_blocks"]))
-        print(f"{filename:<15} {info['index_block']:<15} [{data_str}]")
+    print("\nIndexed Allocation Result")
+    print("File           Index Block     Data Blocks")
+    print("-" * 50)
 
+    for filename, info in allocation.items():
+        data_list = ", ".join(map(str, info["data_blocks"]))
+        print(f"{filename:<15} {info['index_block']:<15} {data_list}")
+
+
+# ---------------- MAIN PROGRAM ----------------
 
 if __name__ == '__main__':
+
     files = [
-        ("file1.txt", 0, [1, 2, 3, 4]),
-        ("file2.txt", 5, [6, 7, 8]),
-        ("file3.txt", 10, [11, 12]),
+        ("file1.txt", 0, [1, 2, 3]),
+        ("file2.txt", 5, [6, 7]),
+        ("file3.txt", 10, [11, 12])
     ]
+
     disk_size = 20
-    
+
     allocation, disk = indexed_allocation(files, disk_size)
     print_allocation(allocation)
-    
-    print(f"\nDisk Structure:")
+
+    print("\nDisk Contents:")
     for block in sorted(disk.keys()):
         block_type, content = disk[block]
-        if block_type == "index":
-            print(f"Block {block}: Index block -> {content}")
-        else:
-            print(f"Block {block}: Data block ({content})")
+        print(f"Block {block}: {block_type} -> {content}")
